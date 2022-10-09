@@ -1,0 +1,2 @@
+This is a simple application running on a EC2.
+This uses a Cloudformation Nested Stack to create this setup 
