@@ -1,0 +1,91 @@
+# Creation of vpc using cloudformation - Hands-On 
+AWSTemplateFormatVersion: 2010-09-09
+Description: nested stack
+
+Parameters: 
+   VPCCidrBlock: 
+     Type: String
+     Default: 10.0.0.0/16
+     Description: cidr range of vpc
+
+   SubnetCidrRange: 
+     Type: String 
+     Default: 10.0.1.0/24
+     Description: cidr range for subnet
+
+Metadata: 
+    AWS::CloudFormation::Interface: 
+      ParameterGroups: 
+            - Label: 
+                default: In this group please select subnet vpc network configuration
+              Parameters: 
+                     - VPCCidrBlock
+                     - SubnetCidrRange
+      ParameterLabels:
+           VPCCidrBlock:
+             default:  seletct the vpc cidr range Jasmeet Singh
+  
+
+Resources: 
+    myVpc: 
+      Type: AWS::EC2::VPC
+      Properties: 
+         CidrBlock: !Ref VPCCidrBlock
+         EnableDnsSupport: true
+         EnableDnsHostnames: true
+         Tags: 
+          - Key: Name
+            Value: my-test-vpc
+         
+    myPublicSubnet: 
+      Type: AWS::EC2::Subnet
+      Properties: 
+        AvailabilityZone: !Select [ 0, !GetAZs  '' ]
+        CidrBlock: !Ref SubnetCidrRange
+        VpcId: !Ref myVpc
+        Tags: 
+         - Key: Name
+           Value: myPublicSubnet
+         
+    myRouteTable: 
+       Type: AWS::EC2::RouteTable
+       Properties: 
+          VpcId: !Ref myVpc
+
+    subnetRouteTableAssociation: 
+        Type: AWS::EC2::SubnetRouteTableAssociation
+        Properties: 
+           SubnetId: !Ref myPublicSubnet
+           RouteTableId: !Ref myRouteTable
+
+    myInternetGateway: 
+       Type: AWS::EC2::InternetGateway
+       Properties:   
+        Tags: 
+         - Key: Name
+           Value: my-test-IGW
+
+    VPCAttachmentToIGW: 
+       Type: AWS::EC2::VPCGatewayAttachment
+       Properties: 
+         VpcId: !Ref myVpc
+         InternetGatewayId: !Ref myInternetGateway
+
+    Route: 
+     Type: AWS::EC2::Route
+     Properties: 
+       GatewayId: !Ref myInternetGateway
+       RouteTableId: !Ref myRouteTable
+       DestinationCidrBlock: 0.0.0.0/0
+     DependsOn: VPCAttachmentToIGW
+
+     
+Outputs: 
+   SubnetId: 
+      Description: Id of my subnet
+      Value: !Ref myPublicSubnet
+   
+   VpcId: 
+      Description: myvpc id 
+      Value: !Ref myVpc    
+   
